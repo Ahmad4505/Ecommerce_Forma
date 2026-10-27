@@ -1,0 +1,83 @@
+# Template for a Linux TLS reverse proxy; replace hostname, cert paths and root.
+# Run Django on a private port. Do not trust forwarded headers from public clients.
+limit_req_zone $binary_remote_addr zone=auth:10m rate=10r/m;
+server {
+    listen 80;
+    server_name shop.example.com;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name shop.example.com;
+    ssl_certificate /etc/letsencrypt/live/shop.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/shop.example.com/privkey.pem;
+    root /srv/forma/dist-forma;
+    include /etc/nginx/mime.types;
+    client_max_body_size 6m;
+    limit_req_status 429;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options DENY always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://eu-test.oppwa.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com; connect-src 'self' https://eu-test.oppwa.com; frame-src https://*.oppwa.com https://*.paypal.com https://*.checkout.com; form-action 'self' https://*.oppwa.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+    error_page 400 /errors/400.html;
+    error_page 401 /errors/401.html;
+    error_page 403 /errors/403.html;
+    error_page 404 /errors/404.html;
+    error_page 405 /errors/405.html;
+    error_page 408 /errors/408.html;
+    error_page 409 /errors/409.html;
+    error_page 413 /errors/413.html;
+    error_page 422 /errors/422.html;
+    error_page 429 /errors/429.html;
+    error_page 500 /errors/500.html;
+    error_page 502 /errors/502.html;
+    error_page 503 /errors/503.html;
+    location ^~ /api/auth/ {
+        limit_req zone=auth burst=5 nodelay;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_intercept_errors off;
+    }
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_intercept_errors off;
+    }
+    location /internal-admin/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+    location /health/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+    location /static/ { alias /srv/forma/backend/staticfiles/; }
+    location /media/ {
+        alias /srv/forma/backend/media/;
+        types { image/jpeg jpg jpeg; image/png png; image/webp webp; }
+        default_type application/octet-stream;
+    }
+    location = /errors/400 { return 400; }
+    location = /errors/401 { return 401; }
+    location = /errors/403 { return 403; }
+    location = /errors/404 { return 404; }
+    location = /errors/405 { return 405; }
+    location = /errors/408 { return 408; }
+    location = /errors/409 { return 409; }
+    location = /errors/413 { return 413; }
+    location = /errors/422 { return 422; }
+    location = /errors/429 { return 429; }
+    location = /errors/500 { return 500; }
+    location = /errors/502 { return 502; }
+    location = /errors/503 { return 503; }
+    location ~ ^/errors/(400|401|403|404|405|408|409|413|422|429|500|502|503)\.html$ { internal; }
+    location ~ ^/(shop|search|categories|category/[^/]+|product/[^/]+|vendors|vendor(/.*)?|offers|wishlist|about|contact|faq|privacy|terms|cart|checkout|login|register|forgot-password|resend-verification|reset-password|vendor-register|vendor-pending|verify-email|account(/.*)?|admin(/.*)?|payment/hyperpay/[^/]+)$ {
+        try_files $uri /index.html;
+    }
+    location / { try_files $uri $uri/ =404; }
+}

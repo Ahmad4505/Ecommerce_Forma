@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests/audit',timeout:180000,workers:1,outputDir:'.functional-audit-results/playwright',use:{baseURL:process.env.FRONTEND_TEST_URL||'http://127.0.0.1:5176',headless:true,actionTimeout:20000,launchOptions:{executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'},screenshot:'only-on-failure'},reporter:'list'});

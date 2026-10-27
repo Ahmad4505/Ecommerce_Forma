@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+const memory=new Map();globalThis.localStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
+const {mockApi,readDB}=await import('../src/services/api.js');
+const customer={id:'u1',role:'customer'},vendor={id:'u2',role:'vendor',vendorId:'v1'},admin={id:'u3',role:'admin'};
+test('mock workflows enforce ownership, stock, cancellation and vendor access',async()=>{
+ memory.clear();
+ await assert.rejects(()=>mockApi.login('customer@forma.demo','wrong'));
+ assert.equal((await mockApi.login('customer@forma.demo','demo1234')).role,'customer');
+ const original=readDB().products.find(p=>p.id==='p1');
+ await assert.rejects(()=>mockApi.save('products',{...readDB().products[1],name:'Not mine'},vendor));
+ await mockApi.save('products',{...original,name:'Vendor updated chair'},vendor);
+ assert.equal(readDB().products[0].name,'Vendor updated chair');
+ await assert.rejects(()=>mockApi.checkout([{id:'p1',quantity:999}],'Demo address','Card simulation','',customer));
+ const order=await mockApi.checkout([{id:'p1',quantity:2}],'Demo address','Card simulation','FORMA10',customer);
+ assert.equal(readDB().products[0].stock,original.stock-2);
+ assert.equal(order.total,original.discountPrice*2*.9);
+ await assert.rejects(()=>mockApi.status(order.id,'Cancelled',{id:'other',role:'customer'}));
+ await mockApi.status(order.id,'Cancelled',customer);
+ assert.equal(readDB().products[0].stock,original.stock);
+ await mockApi.save('vendors',{...readDB().vendors[0],active:false},admin);
+ await assert.rejects(()=>mockApi.login('vendor@forma.demo','demo1234'));
+ await assert.rejects(()=>mockApi.save('products',original,vendor));
+ memory.clear();
+});
+test('registration discards credentials and creates only customers',async()=>{memory.clear();const u=await mockApi.register({name:'Test Person',email:'new@forma.demo',password:'not-saved',role:'admin'});assert.equal(u.role,'customer');assert.equal(JSON.stringify(readDB()).includes('not-saved'),false);await assert.rejects(()=>mockApi.register({name:'Duplicate',email:'new@forma.demo'}));memory.clear()});

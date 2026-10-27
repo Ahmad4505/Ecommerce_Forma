@@ -1,0 +1,16 @@
+import {test,expect} from '@playwright/test';
+test('all role workspaces and detail pages render; role guards prevent cross-role access',async({page})=>{
+ test.setTimeout(120000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const routes={customer:['/account','/account/profile','/account/orders','/account/orders/FRM-1001','/account/wishlist','/account/addresses','/account/settings'],vendor:['/vendor','/vendor/products','/vendor/products/new','/vendor/products/p1/edit','/vendor/inventory','/vendor/orders','/vendor/orders/FRM-1002','/vendor/analytics','/vendor/store','/vendor/reviews'],admin:['/admin','/admin/customers','/admin/vendors','/admin/vendors/new','/admin/vendors/v1/edit','/admin/products','/admin/products/new','/admin/products/p1/edit','/admin/categories','/admin/orders','/admin/orders/FRM-1001','/admin/reports','/admin/promotions','/admin/banners','/admin/product-reports','/admin/settings']};
+ for(const [role,paths] of Object.entries(routes)){
+  await page.goto('/login');await page.getByRole('button',{name:role,exact:true}).click();await expect(page.locator('.dash-sidebar')).toBeVisible();
+  for(const route of paths){await page.goto(route);await expect(page.locator('.dash-content h1')).toBeVisible();await expect(page.getByText('Something went wrong',{exact:true})).toHaveCount(0)}
+  await page.setViewportSize({width:390,height:844});await expect(page.getByRole('button',{name:'Open sidebar'})).toBeVisible();await page.getByRole('button',{name:'Open sidebar'}).click();await expect(page.locator('.dash-sidebar')).toHaveClass(/open/);await page.getByRole('button',{name:'Close sidebar'}).click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.setViewportSize({width:1440,height:1000});
+ }
+ await page.goto('/login');await page.getByRole('button',{name:'customer',exact:true}).click();await page.goto('/admin');await expect(page.getByRole('heading',{name:'This space belongs to another role.'})).toBeVisible();
+ expect(errors).toEqual([]);
+});
+test('quick view, wishlist, bag quantity, search overlay and reduced-motion navigation work',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/shop');const card=page.locator('.product-card').first();await card.getByLabel(/Quick view/).click();await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+ await card.getByLabel(/Wishlist/).click();await page.goto('/wishlist');await expect(page.locator('.product-card')).toHaveCount(1);await page.locator('.product-card').getByLabel(/Add .* to bag/).click();await page.getByLabel('Open shopping bag').click();await expect(page.getByRole('dialog',{name:'Shopping bag'})).toBeVisible();await page.getByLabel(/Increase Arc Lounge Chair/).click();await expect(page.locator('.quantity span')).toHaveText('2');await page.getByLabel('Close bag').click();await page.getByLabel('Search products').click();await page.getByPlaceholder('Search products, categories, or brands…').fill('lamp');await page.getByRole('button',{name:'Search',exact:true}).click();await expect(page).toHaveURL(/search\?q=lamp/);await expect(page.locator('.product-card')).toHaveCount(2);
+});

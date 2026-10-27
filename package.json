@@ -1,0 +1,38 @@
+{
+  "name": "forma-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --preserve-symlinks --preserve-symlinks-main scripts/forma-run.mjs dev",
+    "build": "node --preserve-symlinks --preserve-symlinks-main scripts/forma-run.mjs build",
+    "preview": "node --preserve-symlinks --preserve-symlinks-main scripts/forma-run.mjs preview",
+    "test": "node --preserve-symlinks --preserve-symlinks-main --test tests/services.test.js tests/shop.test.js",
+    "test:e2e": "node --preserve-symlinks --preserve-symlinks-main scripts/test-functional-audit.mjs",
+    "test:backend": "backend/.venv/Scripts/python -m pytest backend",
+    "test:integration": "node --preserve-symlinks --preserve-symlinks-main scripts/test-functional-audit.mjs"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0",
+    "gsap": "^3.12.0",
+    "three": "^0.180.0",
+    "@react-three/fiber": "^9.0.0",
+    "@react-three/drei": "^10.0.0",
+    "lucide-react": "^0.468.0",
+    "zustand": "^5.0.0",
+    "react-hook-form": "^7.54.0",
+    "zod": "^3.24.0",
+    "@hookform/resolvers": "^3.9.0",
+    "axios": "^1.7.0",
+    "react-hot-toast": "^2.4.0"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@playwright/test": "^1.50.0"
+  }
+}

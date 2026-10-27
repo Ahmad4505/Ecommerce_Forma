@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests/browser',timeout:60000,workers:1,outputDir:'.forma-test-results',use:{baseURL:process.env.PLAYWRIGHT_BASE_URL||'http://127.0.0.1:5175',headless:true,launchOptions:{executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']},screenshot:'only-on-failure'},reporter:'list'});
